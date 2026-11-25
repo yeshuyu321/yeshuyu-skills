@@ -1,0 +1,81 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>动效镜头</title>
+<style>
+@font-face{font-family:SHS;src:url(../../template/fonts/SourceHanSansCN-Heavy.otf);}
+@font-face{font-family:Body;src:url(../../template/fonts/NotoSansSC-500.woff);}
+@font-face{font-family:WK;src:url(../../template/fonts/LXGWWenKai-500.woff);}
+html,body{margin:0;background:#000;}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--bg0);font-family:Body,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);}
+canvas,#fx{position:absolute;left:0;top:0;}
+.abs{position:absolute;left:0;top:0;}
+.mono{font-family:Menlo,Consolas,"Courier New",monospace;}
+.heavy{font-family:SHS,"PingFang SC","Microsoft YaHei",sans-serif;}
+#vignette{position:absolute;inset:0;background:radial-gradient(ellipse 75% 60% at 50% 42%,rgba(0,0,0,0) 40%,rgba(0,0,0,.6) 100%);pointer-events:none;}
+/* 双色标题：前半 .w 普通色，后半 .a 强调色（各风格的样子在 lib.js 的 STYLES 里） */
+.warn{color:var(--warn);}
+.card{position:absolute;left:0;top:0;box-sizing:border-box;}
+.chip{position:absolute;left:0;top:0;height:60px;padding:0 24px;border-radius:30px;display:flex;align-items:center;font-size:30px;white-space:nowrap;box-sizing:border-box;}
+.label{font-size:30px;}
+.stamp{position:absolute;left:0;top:0;font-family:SHS,sans-serif;font-size:60px;color:var(--warn);border:6px solid var(--warn);border-radius:12px;padding:4px 20px;opacity:0;}
+#sub{position:absolute;left:540px;top:1475px;transform:translate(-50%,-50%);background:#ffe500;color:#111;font-family:SHS,sans-serif;font-size:42px;padding:10px 22px;border-radius:10px;white-space:nowrap;display:none;}
+#fade{position:absolute;inset:0;}
+/* 这条镜头自己的样式 */
+.it{width:380px;height:250px;opacity:0;}
+.no{position:absolute;left:36px;top:28px;font-size:34px;color:var(--dim);}
+.nm{position:absolute;left:36px;top:110px;font-size:80px;}
+</style></head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1080" height="1920"></canvas>
+  <svg id="fx" width="1080" height="1920" viewBox="0 0 1080 1920"></svg>
+  <div id="topLabel" class="abs label">做一条视频要干的事</div>
+
+  <div id="c0" class="card it" style="left:140px;top:380px;"><div class="no">01</div><div class="nm heavy">选题</div></div>
+  <div id="c1" class="card it" style="left:560px;top:380px;"><div class="no">02</div><div class="nm heavy">写稿</div></div>
+  <div id="c2" class="card it" style="left:140px;top:670px;"><div class="no">03</div><div class="nm heavy">剪辑</div></div>
+  <div id="c3" class="card it" style="left:560px;top:670px;"><div class="no">04</div><div class="nm heavy">封面</div></div>
+  <div id="cnt" class="chip" style="opacity:0;">一共 4 件事</div>
+  <div id="title" class="abs heavy" style="width:1080px;text-align:center;font-size:140px;line-height:1.1;white-space:nowrap;"><span class="w" id="tA">AI 都能</span><span class="a" id="tB">帮你做</span></div>
+
+  <svg id="fxTop" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;left:0;top:0;"></svg>
+  <div id="vignette"></div>
+  <canvas id="grain" width="540" height="960" style="position:absolute;left:0;top:0;width:1080px;height:1920px;pointer-events:none;"></canvas>
+  <div id="sub"></div>
+  <div id="fade"></div>
+</div>
+<script src="../../template/lib.js"></script>
+<script>
+// 演法：列举 ——说到哪一项弹出哪一张卡；说「四件事」时一圈框把它们圈成一组；说「AI」时逐张打勾、卡片点亮；结论大字砸下
+useStyle('pastel');
+// 口播：选题、写稿、剪辑、封面，这四件事，AI都能帮你做。（没有配音，按每秒 4.5 字估的）
+const T = { items: [.15, .59, 1.04, 1.48], group: 2.33, ai: 3.18, title: 3.75, end: 5.2 };
+window.SUBS = [[0.15,1.93,'选题、写稿、剪辑、封面'],[2.11,3.00,'这四件事'],[3.18,4.73,'AI都能帮你做']];
+
+const bg = makeBackground(11);
+svgSetup();
+const frame = growPath(rrPath(110, 350, 860, 600, 40), { dash: '1 0', width: S.lineW - 1 });
+const pos = [[140, 380], [560, 380], [140, 670], [560, 670]];
+const checks = pos.map(([x, y]) => growPath(checkPath(x + 310, y + 70, 56), { parent: $('fxTop'), width: S.lineW + 2, color: S.onHot }));
+const hit = hitFlash($('fxTop'));
+
+function seek(t) {
+  bg.draw(t);
+  chrome(t);
+  T.items.forEach((a, i) => popIn($('c' + i), t, a));
+  frame.set(eOut(prog(t, T.group, T.group + .45)));
+  place($('cnt'), 540, 350, 1); popIn($('cnt'), t, T.group + .15, { base: 'translate(540px,350px) translate(-50%,-50%)' });
+  checks.forEach((c, i) => {
+    const a = T.ai + i * .12;
+    c.set(eOut(prog(t, a, a + .22)));
+    $('c' + i).classList.toggle('hot', t >= a);
+  });
+  $('title').style.transform = `translate(0px,${1130 - 77}px)`;
+  slam($('tA'), t, T.title);
+  slam($('tB'), t, T.title + .1);
+  hit.set(t, T.title + .15, 540, 1130);
+}
+window.seek = seek; window.T = T;
+ready();
+</script>
+</body></html>

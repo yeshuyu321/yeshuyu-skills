@@ -1,0 +1,70 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>动效镜头</title>
+<style>
+@font-face{font-family:SHS;src:url(fonts/SourceHanSansCN-Heavy.otf);}
+@font-face{font-family:Body;src:url(fonts/NotoSansSC-500.woff);}
+@font-face{font-family:WK;src:url(fonts/LXGWWenKai-500.woff);}
+html,body{margin:0;background:#000;}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--bg0);font-family:Body,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);}
+canvas,#fx{position:absolute;left:0;top:0;}
+.abs{position:absolute;left:0;top:0;}
+.mono{font-family:Menlo,Consolas,"Courier New",monospace;}
+.heavy{font-family:SHS,"PingFang SC","Microsoft YaHei",sans-serif;}
+#vignette{position:absolute;inset:0;background:radial-gradient(ellipse 75% 60% at 50% 42%,rgba(0,0,0,0) 40%,rgba(0,0,0,.6) 100%);pointer-events:none;}
+/* 双色标题：前半 .w 普通色，后半 .a 强调色（各风格的样子在 lib.js 的 STYLES 里） */
+.warn{color:var(--warn);}
+.card{position:absolute;left:0;top:0;box-sizing:border-box;}
+.chip{position:absolute;left:0;top:0;height:60px;padding:0 24px;border-radius:30px;display:flex;align-items:center;font-size:30px;white-space:nowrap;box-sizing:border-box;}
+.label{font-size:30px;}
+.stamp{position:absolute;left:0;top:0;font-family:SHS,sans-serif;font-size:60px;color:var(--warn);border:6px solid var(--warn);border-radius:12px;padding:4px 20px;opacity:0;}
+#sub{position:absolute;left:540px;top:1475px;transform:translate(-50%,-50%);background:#ffe500;color:#111;font-family:SHS,sans-serif;font-size:42px;padding:10px 22px;border-radius:10px;white-space:nowrap;display:none;}
+#fade{position:absolute;inset:0;}
+/* ↓ 这条镜头自己的样式写在这里 */
+</style></head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1080" height="1920"></canvas>
+  <svg id="fx" width="1080" height="1920" viewBox="0 0 1080 1920"></svg>
+  <div id="topLabel" class="abs label">01 · 小标题</div>
+
+  <!-- ↓ 这条镜头的画面元素写在这里（DOM 放这，线条、圆环、闪光用 lib.js 在 svg 里画） -->
+  <div id="title" class="abs heavy" style="width:1080px;text-align:center;font-size:150px;line-height:1.1;white-space:nowrap;"><span class="w" id="tA">示例</span><span class="a" id="tB">标题</span></div>
+
+  <!-- 盖在卡片上面的画线层：卡片里的对勾、图表线画在这里：{ parent: $('fxTop') } -->
+  <svg id="fxTop" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;left:0;top:0;"></svg>
+  <div id="vignette"></div>
+  <canvas id="grain" width="540" height="960" style="position:absolute;left:0;top:0;width:1080px;height:1920px;pointer-events:none;"></canvas>
+  <div id="sub"></div>
+  <div id="fade"></div>
+</div>
+<script src="lib.js"></script>
+<script>
+// ===== 这条镜头的设定 =====
+useStyle('paper');           // 风格：paper 米白手账 / swiss 白底网格 / aurora 紫夜霓虹 / pastel 奶油渐变 / chalk 黑板粉笔
+                             // 换成自己的强调色：useStyle('paper', { accent: '#e8590c' })
+// 时间轴（秒）：每个数字对着口播里的一个词。有配音就用 scripts/timing.py 从字级时间取，没有就按每秒 4.5 字估
+const T = {
+  title: 0.6,
+  end: 3.0,                  // 镜头总长
+};
+// 字幕预览（只在 ?sub=1 时显示，交给剪辑的干净版不带）
+window.SUBS = [[0.05, 3.0, '这里放口播原句']];
+
+const bg = makeBackground(7);
+svgSetup();
+const hit = hitFlash();
+
+function seek(t) {
+  bg.draw(t);
+  chrome(t);
+  // ↓ 在这里按 T 写每一帧的样子
+  $('title').style.transform = `translate(0px,${760 - 80}px)`;
+  slam($('tA'), t, T.title);
+  slam($('tB'), t, T.title + .08);
+  hit.set(t, T.title + .2, 540, 760);
+}
+window.seek = seek; window.T = T;
+ready();
+</script>
+</body></html>

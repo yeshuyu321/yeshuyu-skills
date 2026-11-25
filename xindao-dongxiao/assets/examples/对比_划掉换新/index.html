@@ -1,0 +1,91 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>动效镜头</title>
+<style>
+@font-face{font-family:SHS;src:url(../../template/fonts/SourceHanSansCN-Heavy.otf);}
+@font-face{font-family:Body;src:url(../../template/fonts/NotoSansSC-500.woff);}
+@font-face{font-family:WK;src:url(../../template/fonts/LXGWWenKai-500.woff);}
+html,body{margin:0;background:#000;}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--bg0);font-family:Body,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);}
+canvas,#fx{position:absolute;left:0;top:0;}
+.abs{position:absolute;left:0;top:0;}
+.mono{font-family:Menlo,Consolas,"Courier New",monospace;}
+.heavy{font-family:SHS,"PingFang SC","Microsoft YaHei",sans-serif;}
+#vignette{position:absolute;inset:0;background:radial-gradient(ellipse 75% 60% at 50% 42%,rgba(0,0,0,0) 40%,rgba(0,0,0,.6) 100%);pointer-events:none;}
+/* 双色标题：前半 .w 普通色，后半 .a 强调色（各风格的样子在 lib.js 的 STYLES 里） */
+.warn{color:var(--warn);}
+.card{position:absolute;left:0;top:0;box-sizing:border-box;}
+.chip{position:absolute;left:0;top:0;height:60px;padding:0 24px;border-radius:30px;display:flex;align-items:center;font-size:30px;white-space:nowrap;box-sizing:border-box;}
+.label{font-size:30px;}
+.stamp{position:absolute;left:0;top:0;font-family:SHS,sans-serif;font-size:60px;color:var(--warn);border:6px solid var(--warn);border-radius:12px;padding:4px 20px;opacity:0;}
+#sub{position:absolute;left:540px;top:1475px;transform:translate(-50%,-50%);background:#ffe500;color:#111;font-family:SHS,sans-serif;font-size:42px;padding:10px 22px;border-radius:10px;white-space:nowrap;display:none;}
+#fade{position:absolute;inset:0;}
+/* 这条镜头自己的样式 */
+.blk{position:absolute;width:150px;height:96px;box-sizing:border-box;border:3px solid var(--dim);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--text);opacity:0;}
+.big{font-size:64px;}
+.mid{font-size:40px;color:var(--dim);}
+</style></head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1080" height="1920"></canvas>
+  <svg id="fx" width="1080" height="1920" viewBox="0 0 1080 1920"></svg>
+  <div id="topLabel" class="abs label">以前 vs 现在</div>
+
+  <!-- 旧的：以前要三天 -->
+  <div id="old" class="card" style="left:120px;top:330px;width:840px;height:320px;opacity:0;">
+    <div class="abs mid" style="left:44px;top:36px;">以前</div>
+    <div class="abs heavy big" style="left:44px;top:96px;">剪一条视频</div>
+    <div id="d1" class="blk" style="left:44px;top:196px;">第 1 天</div>
+    <div id="d2" class="blk" style="left:214px;top:196px;">第 2 天</div>
+    <div id="d3" class="blk" style="left:384px;top:196px;">第 3 天</div>
+    <div id="days" class="abs heavy warn" style="left:600px;top:150px;font-size:120px;opacity:0;">3 天</div>
+  </div>
+  <!-- 新的：现在一个下午 -->
+  <div id="nw" class="card hot" style="left:120px;top:730px;width:840px;height:300px;opacity:0;">
+    <div class="abs mid" style="left:44px;top:36px;">现在 · 用 AI</div>
+    <div id="after" class="abs heavy" style="left:260px;top:130px;font-size:96px;opacity:0;">约 4 小时</div>
+  </div>
+  <div id="title" class="abs heavy" style="width:1080px;text-align:center;font-size:150px;line-height:1.1;white-space:nowrap;"><span class="w" id="tA">一个下午</span><span class="a" id="tB">搞定</span></div>
+
+  <svg id="fxTop" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;left:0;top:0;"></svg>
+  <div id="vignette"></div>
+  <canvas id="grain" width="540" height="960" style="position:absolute;left:0;top:0;width:1080px;height:1920px;pointer-events:none;"></canvas>
+  <div id="sub"></div>
+  <div id="fade"></div>
+</div>
+<script src="../../template/lib.js"></script>
+<script>
+// 演法：不是 A 而是 B ——旧的摆出来，一条红线划掉、变暗；新的弹出来；结论大字砸下
+useStyle('paper');
+// 口播：以前剪一条视频要三天，现在用AI，一个下午就搞定。（没有配音，按每秒 4.5 字估的）
+const T = { old: .15, d1: .9, d2: 1.35, days: 1.93, strike: 2.55, nw: 3.22, after: 3.84, done: 4.95, end: 5.9 };
+window.SUBS = [[0.15,2.37,'以前剪一条视频要三天'],[2.55,3.66,'现在用AI'],[3.84,5.40,'一个下午就搞定']];
+
+const bg = makeBackground(7);
+svgSetup();
+const strike = growLine(110, 490, 970, 470, { color: S.warn, width: S.lineW + 2, parent: $('fxTop') });
+const ring = growRing({ parent: $('fxTop'), width: S.lineW + 1, color: S.onHot });
+const tick = growPath('M230 900 L230 862 M230 900 L256 914', { parent: $('fxTop'), color: S.onHot });
+const hit = hitFlash($('fxTop'));
+
+function seek(t) {
+  bg.draw(t);
+  chrome(t);
+  popIn($('old'), t, T.old, { dur: .3 });
+  popIn($('d1'), t, T.d1); popIn($('d2'), t, T.d2); popIn($('d3'), t, T.days - .15);
+  slam($('days'), t, T.days, { from: 1.25 });
+  strike.set(eOut(prog(t, T.strike, T.strike + .3)));
+  if (t > T.strike + .3) dimOut($('old'), t, T.strike + .3, .35);
+  popIn($('nw'), t, T.nw, { dur: .3 });
+  ring.set(230, 900, 56, eIO(prog(t, T.nw + .15, T.after)));
+  tick.set(eOut(prog(t, T.nw + .15, T.nw + .4)));
+  blurIn($('after'), t, T.after, .25);
+  $('title').style.transform = `translate(0px,${1170 - 80}px)`;
+  slam($('tA'), t, T.done - .25);
+  slam($('tB'), t, T.done);
+  hit.set(t, T.done + .05, 540, 1170);
+}
+window.seek = seek; window.T = T;
+ready();
+</script>
+</body></html>

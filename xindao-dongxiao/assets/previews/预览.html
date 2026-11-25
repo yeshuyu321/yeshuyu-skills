@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>新岛动效模板库 · 预览</title>
+<style>
+:root{--bg:#f6f4ef;--text:#1d1b18;--dim:#7a746a;--line:#e2ddd2;}
+@media (prefers-color-scheme:dark){:root{--bg:#141312;--text:#f1eee8;--dim:#9c958a;--line:#2c2a27;}}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
+main{max-width:1180px;margin:0 auto;padding:32px 16px 64px;}
+h1{font-size:28px;margin:0 0 6px;}
+p.lead{color:var(--dim);margin:0 0 28px;line-height:1.7;}
+h2{font-size:20px;margin:36px 0 4px;}
+p.say{color:var(--dim);margin:0 0 14px;font-size:15px;}
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+figure{margin:0;}
+video{width:100%;aspect-ratio:9/16;border-radius:10px;background:#000;display:block;border:1px solid var(--line);}
+figcaption{font-size:14px;margin-top:6px;}
+figcaption code{color:var(--dim);font-size:12px;margin-left:4px;}
+@media (max-width:760px){.row{grid-template-columns:repeat(2,1fr);}}
+</style></head>
+<body><main>
+<h1>新岛动效模板库 · 5 套风格 x 3 个例子</h1>
+<p class="lead">同一个例子换风格，只要改一个词。每套都能换成你自己的强调色。告诉你的 AI「用某某风格」，它就照着做。</p>
+<div id="list"></div>
+</main>
+<script>
+const styles = [['paper','米白手账'],['swiss','白底网格'],['aurora','紫夜霓虹'],['pastel','奶油渐变'],['chalk','黑板粉笔']];
+const examples = [
+  ['对比_划掉换新','「以前剪一条视频要三天，现在用 AI，一个下午就搞定。」旧的划掉，新的亮起来'],
+  ['列举_清单打勾','「选题、写稿、剪辑、封面，这四件事，AI 都能帮你做。」说到哪项弹哪张，最后逐张打勾'],
+  ['数字_跳动上涨','「这条视频发出去三天，播放从零涨到了十二万。」曲线和数字一起涨，停在说完那一刻'],
+];
+const list = document.getElementById('list');
+for (const [ex, say] of examples) {
+  const h = document.createElement('h2'); h.textContent = ex; list.appendChild(h);
+  const p = document.createElement('p'); p.className = 'say'; p.textContent = say; list.appendChild(p);
+  const row = document.createElement('div'); row.className = 'row';
+  for (const [st, label] of styles) {
+    const f = document.createElement('figure');
+    f.innerHTML = `<video src="${ex}_${st}.mp4" autoplay loop muted playsinline></video><figcaption>${label}<code>${st}</code></figcaption>`;
+    row.appendChild(f);
+  }
+  list.appendChild(row);
+}
+</script>
+</body></html>

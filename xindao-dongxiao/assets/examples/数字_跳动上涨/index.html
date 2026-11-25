@@ -1,0 +1,83 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>动效镜头</title>
+<style>
+@font-face{font-family:SHS;src:url(../../template/fonts/SourceHanSansCN-Heavy.otf);}
+@font-face{font-family:Body;src:url(../../template/fonts/NotoSansSC-500.woff);}
+@font-face{font-family:WK;src:url(../../template/fonts/LXGWWenKai-500.woff);}
+html,body{margin:0;background:#000;}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--bg0);font-family:Body,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);}
+canvas,#fx{position:absolute;left:0;top:0;}
+.abs{position:absolute;left:0;top:0;}
+.mono{font-family:Menlo,Consolas,"Courier New",monospace;}
+.heavy{font-family:SHS,"PingFang SC","Microsoft YaHei",sans-serif;}
+#vignette{position:absolute;inset:0;background:radial-gradient(ellipse 75% 60% at 50% 42%,rgba(0,0,0,0) 40%,rgba(0,0,0,.6) 100%);pointer-events:none;}
+/* 双色标题：前半 .w 普通色，后半 .a 强调色（各风格的样子在 lib.js 的 STYLES 里） */
+.warn{color:var(--warn);}
+.card{position:absolute;left:0;top:0;box-sizing:border-box;}
+.chip{position:absolute;left:0;top:0;height:60px;padding:0 24px;border-radius:30px;display:flex;align-items:center;font-size:30px;white-space:nowrap;box-sizing:border-box;}
+.label{font-size:30px;}
+.stamp{position:absolute;left:0;top:0;font-family:SHS,sans-serif;font-size:60px;color:var(--warn);border:6px solid var(--warn);border-radius:12px;padding:4px 20px;opacity:0;}
+#sub{position:absolute;left:540px;top:1475px;transform:translate(-50%,-50%);background:#ffe500;color:#111;font-family:SHS,sans-serif;font-size:42px;padding:10px 22px;border-radius:10px;white-space:nowrap;display:none;}
+#fade{position:absolute;inset:0;}
+/* 这条镜头自己的样式 */
+#num{font-size:190px;letter-spacing:-4px;}
+.ax{position:absolute;font-size:30px;color:var(--dim);opacity:0;}
+</style></head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1080" height="1920"></canvas>
+  <svg id="fx" width="1080" height="1920" viewBox="0 0 1080 1920"></svg>
+  <div id="topLabel" class="abs label">发布后的播放量</div>
+
+  <div id="chip" class="chip" style="opacity:0;">发出去 · 第 3 天</div>
+  <div id="panel" class="card" style="left:120px;top:400px;width:840px;height:480px;opacity:0;"></div>
+  <div id="x1" class="ax" style="left:250px;top:820px;">第 1 天</div>
+  <div id="x2" class="ax" style="left:500px;top:820px;">第 2 天</div>
+  <div id="x3" class="ax" style="left:750px;top:820px;">第 3 天</div>
+  <div id="num" class="abs heavy" style="width:1080px;text-align:center;top:960px;opacity:0;"><span class="a" id="numA">0</span></div>
+  <div id="unit" class="abs" style="width:1080px;text-align:center;top:1220px;font-size:44px;color:var(--dim);opacity:0;">次播放</div>
+  <div id="stamp" class="stamp" style="left:760px;top:880px;">破十万</div>
+
+  <svg id="fxTop" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;left:0;top:0;"></svg>
+  <div id="vignette"></div>
+  <canvas id="grain" width="540" height="960" style="position:absolute;left:0;top:0;width:1080px;height:1920px;pointer-events:none;"></canvas>
+  <div id="sub"></div>
+  <div id="fade"></div>
+</div>
+<script src="../../template/lib.js"></script>
+<script>
+// 演法：一个数字涨上去 ——先搭坐标轴、说到哪天亮哪天；说「从零」时曲线和数字一起往上走，停在口播说完「十二万」那一刻；最后盖章
+useStyle('aurora');
+// 口播：这条视频发出去三天，播放从零涨到了十二万。（没有配音，按每秒 4.5 字估的）
+const T = { panel: .15, out: 1.04, d2: 1.38, days: 1.71, zero: 2.77, top: 3.89, end: 5.1 };
+window.SUBS = [[0.15,2.15,'这条视频发出去三天'],[2.33,4.55,'播放从零涨到了十二万']];
+
+const bg = makeBackground(5);
+svgSetup();
+const axis = growLine(200, 800, 900, 800, { color: S.dim, width: 3, glow: false, parent: $('fxTop') });
+// 曲线：前面平、后面陡
+const pts = []; for (let i = 0; i <= 40; i++) { const u = i / 40; pts.push([200 + 680 * u, 790 - 330 * Math.pow(u, 2.6)]); }
+const curve = growPath('M' + pts.map(p => p.join(' ')).join(' L'), { parent: $('fxTop'), width: S.lineW + 2 });
+const dot = mk('circle', { r: 12, fill: S.accent }, $('fxTop'));
+const hit = hitFlash($('fxTop'));
+
+function seek(t) {
+  bg.draw(t);
+  chrome(t);
+  popIn($('panel'), t, T.panel, { dur: .3 });
+  axis.set(eOut(prog(t, T.panel + .1, T.panel + .5)), false);
+  popIn($('chip'), t, T.out, { base: 'translate(540px,330px) translate(-50%,-50%)' });
+  blurIn($('x1'), t, T.out); blurIn($('x2'), t, T.d2); blurIn($('x3'), t, T.days);
+  const p = eIn(prog(t, T.zero, T.top));          // 曲线先慢后快，跟「涨」的感觉一致
+  curve.set(p);
+  const [dx, dy] = along(pts, p); dot.setAttribute('cx', dx); dot.setAttribute('cy', dy); dot.style.opacity = p > 0 ? 1 : 0;
+  blurIn($('num'), t, T.zero - .1); blurIn($('unit'), t, T.zero);
+  $('numA').textContent = Math.round(120000 * p).toLocaleString('en-US');
+  stampIn($('stamp'), t, T.top + .1);
+  hit.set(t, T.top + .05, dx, dy);
+}
+window.seek = seek; window.T = T;
+ready();
+</script>
+</body></html>
